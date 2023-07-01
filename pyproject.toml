@@ -11,11 +11,16 @@ description = "Solves the upcoming game Agent Higgs 2 (insert link here)"
 readme = "README.md"  # maybe learn .rst one day?
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
 keywords = ["testtubegames", "higgs agent", "solver"]
 dependencies = [
     'tomli; python_version < "3.11"',
 ]
-dynamic = ["version", "classifiers"]
+dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["black", "bumpver", "isort", "pip-tools", "pytest"]
