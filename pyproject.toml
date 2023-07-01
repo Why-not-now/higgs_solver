@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "higgs_solver"
+version = "0.0.0"
 authors = [
     {name = "Growing Mycelium", email = "theseriouslyunknownsnake@gmail.com"},
 ]
@@ -20,7 +21,6 @@ keywords = ["testtubegames", "higgs agent", "solver"]
 dependencies = [
     'tomli; python_version < "3.11"',
 ]
-dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["black", "bumpver", "isort", "pip-tools", "pytest"]
