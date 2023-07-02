@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "higgs_solver"
+version = "0.0.0"
 authors = [
     {name = "Growing Mycelium", email = "theseriouslyunknownsnake@gmail.com"},
 ]
@@ -20,13 +21,24 @@ keywords = ["testtubegames", "higgs agent", "solver"]
 dependencies = [
     'tomli; python_version < "3.11"',
 ]
-dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["black", "bumpver", "isort", "pip-tools", "pytest"]
+dev = ["autopep8", "mypy", "flake8", "pycodestyle", "pylint", "bumpver", "isort", "pip-tools", "pytest", "check-manifest"]
 
 [project.urls]
 Homepage = "https://github.com/Why-not-now/higgs_solver"
 
 # [project.scripts]
 # realpython = "reader.__main__:main"
+
+[tool.bumpver]
+current_version = "0.0.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message  = "Bump version {old_version} -> {new_version}"
+commit          = true
+tag             = true
+push            = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
+"src/higgs_solver/__init__.py" = ["{version}"]
