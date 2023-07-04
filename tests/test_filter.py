@@ -1,4 +1,4 @@
-from higgs_solver import straight_filter
+from higgs_solver.board import straight_filter
 
 
 def test_left_filter():
