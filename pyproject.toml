@@ -20,6 +20,7 @@ classifiers = [
 keywords = ["testtubegames", "higgs agent", "solver"]
 dependencies = [
     'tomli; python_version < "3.11"',
+    'attrs'
 ]
 
 [project.optional-dependencies]
@@ -33,7 +34,7 @@ Homepage = "https://github.com/Why-not-now/higgs_solver"
 
 [tool.bumpver]
 current_version = "0.0.0"
-version_pattern = "MAJOR.MINOR.PATCH"
+version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message  = "Bump version {old_version} -> {new_version}"
 commit          = true
 tag             = true
@@ -41,4 +42,3 @@ push            = false
 
 [tool.bumpver.file_patterns]
 "pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
-"src/higgs_solver/__init__.py" = ["{version}"]

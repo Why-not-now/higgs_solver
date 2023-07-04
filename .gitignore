@@ -161,3 +161,5 @@ cython_debug/
 
 # VScode settings
 .vscode
+
+test_with_pytest.py
