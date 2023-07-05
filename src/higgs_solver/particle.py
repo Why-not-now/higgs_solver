@@ -48,6 +48,14 @@ class ObstacleType(Enum):
         return self in (self.WEAK, self.NORMAL)
 
 
+@verify(CONTINUOUS)
+class HoleType(Enum):
+    ALL = 0
+    LIGHT = 1
+    MEDIUM = 2
+    HEAVY = 3
+
+
 @define(frozen=True)
 class Particles:
     mass: int

@@ -1,3 +1,4 @@
+from enum import CONTINUOUS, Enum, verify
 from typing import TYPE_CHECKING, TypeAlias, TypeVar
 
 from attrs import define, field
@@ -16,9 +17,12 @@ GeneralFilter: TypeAlias = \
     tuple[LeftFilter, RightFilter, UpFilter, DownFilter]
 
 
-def data_board(width: int, height: int, data: T | None = None) \
-        -> tuple[T | None, ...]:
-    return tuple(data for _ in range(width * height))
+@verify(CONTINUOUS)
+class Direction(Enum):
+    LEFT = 0
+    RIGHT = 1
+    UP = 2
+    DOWN = 3
 
 
 @define(frozen=True)
@@ -28,28 +32,21 @@ class Board():
     height: int
     # TODO: goals tuple[int (pointer)]
     # TODO: obstacles tuple[ObstacleType (enum)]
-    # TODO: holes tuple[HolesType (enum)]
+    # TODO: holes tuple[int (enum)]
     # TODO: decay tuple?[decayType (flag)]
     # TODO: higgs tuple[bool]
     particles: tuple["Particles" | None, ...] = field(eq=False)
     particle: tuple["Particle" | None, ...] = field(eq=False)
     _particles_set: frozenset["Particles"]
 
-    def left(self, particles) -> "Board":
+    def move(self, particle: "Particle", direction: Direction) -> "Board":
         raise NotImplementedError
-        return Board(self.width, self.height, *particles._left(self))
+        particles = self.particles[particle.x + self.width * particle.y]
+        return particles.move(self, particle, direction)
 
-    def right(self, particles) -> "Board":
+    def move_all(self) -> set["Board"]:
         raise NotImplementedError
-        return Board(self.width, self.height, *particles._right(self))
-
-    def up(self, particles) -> "Board":
-        raise NotImplementedError
-        return Board(self.width, self.height, *particles._up(self))
-
-    def down(self, particles) -> "Board":
-        raise NotImplementedError
-        return Board(self.width, self.height, *particles._down(self))
+        return {particles.move_all(self) for particles in self._particles_set}
 
 
 def new_board(
@@ -73,6 +70,11 @@ def new_board(
         _particles_set = frozenset(_particles_mutable_set)
 
     return Board(width, height, particles, particle, _particles_set)
+
+
+def data_board(width: int, height: int, data: T | None = None) \
+        -> tuple[T | None, ...]:
+    return tuple(data for _ in range(width * height))
 
 
 def straight_filter(width: int, height: int) \
