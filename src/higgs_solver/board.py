@@ -1,10 +1,11 @@
 from enum import CONTINUOUS, Enum, verify
-from typing import TYPE_CHECKING, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, TypeAlias, TypeVar, overload
 
 from attrs import define, field
 
 if TYPE_CHECKING:
-    from .particle import Particle, Particles
+    from .particle import (DecayType, HoleType, ObstacleType, Particle,
+                           Particles)
 
 T = TypeVar('T')
 
@@ -30,11 +31,11 @@ class Board():
     r"""Generic board class for game"""
     width: int
     height: int
-    # TODO: goals tuple[int (pointer)]
-    # TODO: obstacles tuple[ObstacleType (enum)]
-    # TODO: holes tuple[int (enum)]
-    # TODO: decay tuple?[decayType (flag)]
-    # TODO: higgs tuple[bool]
+    goals: tuple[int, ...]
+    obstacles: tuple["ObstacleType" | None, ...]
+    holes: tuple["HoleType" | None, ...]
+    decay: tuple["DecayType" | None, ...]
+    higgs: tuple[bool, ...]
     particles: tuple["Particles" | None, ...] = field(eq=False)
     particle: tuple["Particle" | None, ...] = field(eq=False)
     _particles_set: frozenset["Particles"]
@@ -49,32 +50,66 @@ class Board():
         return {particles.move_all(self) for particles in self._particles_set}
 
 
+@overload
+def default_board(width: int, height: int) -> tuple[None, ...]:
+    ...
+
+
+@overload
+def default_board(width: int, height: int, data: T) -> tuple[T, ...]:
+    ...
+
+
+def default_board(width, height, data=None):
+    return tuple(data for _ in range(width * height))
+
+
 def new_board(
         width: int,
         height: int,
+        *,
+        goals: tuple[int, ...] | None,
+        obstacles: tuple["ObstacleType" | None, ...] | None,
+        holes: tuple["HoleType" | None, ...] | None,
+        decay: tuple["DecayType" | None, ...] | None,
+        higgs: tuple[bool, ...] | None,
         particles: tuple["Particles" | None, ...] | None,
         particle: tuple["Particle" | None, ...] | None,
         _particles_set: frozenset["Particles"] | None,
 ) -> Board:
     r"""Returns a generic board class for game"""
+    if goals is None:
+        goals = ()
+    if obstacles is None:
+        obstacles = default_board(width, height)
+    if holes is None:
+        holes = default_board(width, height)
+    if decay is None:
+        decay = default_board(width, height)
+    if higgs is None:
+        higgs = default_board(width, height, False)
     if particle is None:
-        particle = data_board(width, height)
+        particle = default_board(width, height)
     if particles is None:
-        particles = data_board(width, height)
-    if particles is None:
-        particles = data_board(width, height)
+        particles = default_board(width, height)
 
     if _particles_set is None:
         _particles_mutable_set: list["Particles"] = \
             [elem for elem in particles if elem is not None]
         _particles_set = frozenset(_particles_mutable_set)
 
-    return Board(width, height, particles, particle, _particles_set)
-
-
-def data_board(width: int, height: int, data: T | None = None) \
-        -> tuple[T | None, ...]:
-    return tuple(data for _ in range(width * height))
+    return Board(
+        width,
+        height,
+        goals,
+        obstacles,
+        holes,
+        decay,
+        higgs,
+        particles,
+        particle,
+        _particles_set
+    )
 
 
 def straight_filter(width: int, height: int) \

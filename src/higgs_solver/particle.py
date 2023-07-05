@@ -56,13 +56,22 @@ class HoleType(Enum):
     HEAVY = 3
 
 
+@verify(CONTINUOUS)
+class DecayType(Flag):
+    TILE = auto()
+    LEFT = auto()
+    RIGHT = auto()
+    UP = auto()
+    DOWN = auto()
+
+
 @define(frozen=True)
 class Particles:
     mass: int
     charge: int
     colour: Colour
     type: ParticleType
-    particles_set: frozenset["Particle"]
+    particles_set: frozenset["Particle | Particles"]
 
     def left(self, board: "Board"):
         pass
