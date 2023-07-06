@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "higgs_solver"
-version = "0.0.1a1"
+version = "0.0.1a2"
 authors = [
     {name = "Growing Mycelium", email = "theseriouslyunknownsnake@gmail.com"},
 ]
@@ -33,7 +33,7 @@ Homepage = "https://github.com/Why-not-now/higgs_solver"
 # realpython = "reader.__main__:main"
 
 [tool.bumpver]
-current_version = "0.0.1a1"
+current_version = "0.0.1a2"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message  = "Bump version {old_version} -> {new_version}"
 commit          = true
