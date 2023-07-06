@@ -5,7 +5,7 @@ from attrs import define, field
 
 if TYPE_CHECKING:
     from .particle import (DecayType, HoleType, ObstacleType, Particle,
-                           Particles)
+                           Matter)
 
 T = TypeVar('T')
 
@@ -36,18 +36,18 @@ class Board():
     holes: tuple["HoleType" | None, ...]
     decay: tuple["DecayType" | None, ...]
     higgs: tuple[bool, ...]
-    particles: tuple["Particles" | None, ...] = field(eq=False)
+    matter: tuple["Matter" | None, ...] = field(eq=False)
     particle: tuple["Particle" | None, ...] = field(eq=False)
-    _particles_set: frozenset["Particles"]
+    _matter_set: frozenset["Matter"]
 
     def move(self, particle: "Particle", direction: Direction) -> "Board":
         raise NotImplementedError
-        particles = self.particles[particle.x + self.width * particle.y]
-        return particles.move(self, particle, direction)
+        matter = self.matter[particle.x + self.width * particle.y]
+        return matter.move(self, particle, direction)
 
     def move_all(self) -> set["Board"]:
         raise NotImplementedError
-        return {particles.move_all(self) for particles in self._particles_set}
+        return {Matter.move_all(self) for Matter in self._matter_set}
 
 
 @overload
@@ -73,9 +73,9 @@ def new_board(
         holes: tuple["HoleType" | None, ...] | None,
         decay: tuple["DecayType" | None, ...] | None,
         higgs: tuple[bool, ...] | None,
-        particles: tuple["Particles" | None, ...] | None,
+        matter: tuple["Matter" | None, ...] | None,
         particle: tuple["Particle" | None, ...] | None,
-        _particles_set: frozenset["Particles"] | None,
+        _matter_set: frozenset["Matter"] | None,
 ) -> Board:
     r"""Returns a generic board class for game"""
     if goals is None:
@@ -90,13 +90,13 @@ def new_board(
         higgs = default_board(width, height, False)
     if particle is None:
         particle = default_board(width, height)
-    if particles is None:
-        particles = default_board(width, height)
+    if matter is None:
+        matter = default_board(width, height)
 
-    if _particles_set is None:
-        _particles_mutable_set: list["Particles"] = \
-            [elem for elem in particles if elem is not None]
-        _particles_set = frozenset(_particles_mutable_set)
+    if _matter_set is None:
+        _matter_mutable_set: list["Matter"] = \
+            [elem for elem in matter if elem is not None]
+        _matter_set = frozenset(_matter_mutable_set)
 
     return Board(
         width,
@@ -106,9 +106,9 @@ def new_board(
         holes,
         decay,
         higgs,
-        particles,
+        matter,
         particle,
-        _particles_set
+        _matter_set
     )
 
 

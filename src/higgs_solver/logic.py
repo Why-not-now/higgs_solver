@@ -18,8 +18,6 @@
 
 # TODO: obstacle destruction (if attraction flag)
 
-# TODO: breaking holes
-
 # TODO: holes (set holes flag)
 
 # TODO: strong force (if not strong attraction flag)
@@ -28,8 +26,10 @@
 
 # TODO: light/heavy annihilation (annihilation flag, check connected component)
 
-# TODO: hadron formation (which way to combine? Ambiguity here)
+# TODO: hadron formation (which way to combine? Ambiguity here. Set false hole)
 
 # TODO: nucleus formation
 
 # TODO: check holes, set flag (if holes is None)
+
+# TODO: breaking holes

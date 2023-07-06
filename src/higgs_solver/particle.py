@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from attrs import define, field
 
 if TYPE_CHECKING:
-    from .board import Board
+    from .board import Board, Direction
 
 
 @verify(NAMED_FLAGS, CONTINUOUS)
@@ -19,13 +19,9 @@ class Colour(Flag):
 
 
 @verify(CONTINUOUS)
-class ParticleType(Enum):
-    ELECTRON = auto()
-    MUON = auto()
-    TAU = auto()
-    ELECTRINO = auto()  # flavour?
-    MUTRINO = auto()
-    TAUTRINO = auto()
+class MatterType(Enum):
+    CHARGED_LEPTON = auto()
+    NEUTRINO = auto()
     PROTON = auto()
     NEUTRON = auto()
     STABLE_NUCLEUS = auto()
@@ -33,6 +29,7 @@ class ParticleType(Enum):
     WBOSON = auto()     # tentative
     HADRON = auto()
     PION = auto()
+    QUARK = auto()
 
 
 @verify(CONTINUOUS)
@@ -66,21 +63,25 @@ class DecayType(Flag):
 
 
 @define(frozen=True)
-class Particles:
+class Matter:  # add individual?
     mass: int
     charge: int
     colour: Colour
-    type: ParticleType
-    particles_set: frozenset["Particle | Particles"]
+    type: MatterType
+    matter_set: frozenset["Particle | Matter"]
 
-    def left(self, board: "Board"):
-        pass
+    def generate_function(self):
+        raise NotImplementedError
+
+    # pylint: disable=unused-argument
+    def move(self, board: "Board", direction: "Direction") -> "Board":
+        return board
 
 
 @define(frozen=True)
 class Particle:
     x: int
     y: int
-    mass: int
+    mass: int = field(default=0)
     charge: int = field(default=0)
     colour: Colour = field(default=Colour.WHITE)
