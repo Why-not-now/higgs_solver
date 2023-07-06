@@ -55,11 +55,11 @@ class HoleType(Enum):
 
 @verify(CONTINUOUS)
 class DecayType(Flag):
-    TILE = auto()
-    LEFT = auto()
     RIGHT = auto()
-    UP = auto()
     DOWN = auto()
+    LEFT = auto()
+    UP = auto()
+    TILE = auto()
 
 
 @define(frozen=True)

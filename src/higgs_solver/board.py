@@ -122,16 +122,16 @@ def straight_filter(width: int, height: int) \
 
     for y in range(0, length, width):
         for x in range(width):
-            left: LeftFilter = \
-                tuple(range(y + x - 1, y - 1, -1))
-            # reversed(range(y, y + x))
             right: RightFilter = \
                 tuple(range(y + x + 1, y + width))
-            up: UpFilter = \
-                tuple(range(y + x - width, -1, -width))
-            # reversed(range(x, y + x, width))
             down: DownFilter = \
                 tuple(range(y + x + width, length, width))
             lookup_table.append((left, right, up, down))
+            left: LeftFilter = \
+                tuple(range(y + x - 1, y - 1, -1))
+            # reversed(range(y, y + x))
+            up: UpFilter = \
+                tuple(range(y + x - width, -1, -width))
+            # reversed(range(x, y + x, width))
 
     return tuple(lookup_table)
