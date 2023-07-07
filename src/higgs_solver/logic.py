@@ -5,10 +5,13 @@
 # TODO:     electromagnetic repulsion/attraction
 
 # TODO: decay??? (how to create particle)
+# TODO:     if particle is none then continue
+# TODO:     if particle is annihilation then annihilate
+# TODO:     else false
 
 # movement
 
-# TODO: particle collision (sans antimatter)
+# TODO: particle collision (sans antimatter, check move flag)
 
 # TODO: obstacle collision
 
@@ -33,3 +36,5 @@
 # TODO: check holes, set flag (if holes is None)
 
 # TODO: breaking holes
+
+# TODO: add situation awareness

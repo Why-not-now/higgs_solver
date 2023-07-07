@@ -162,4 +162,5 @@ cython_debug/
 # VScode settings
 .vscode
 
+# This ensures pytest works on my workbench
 test_with_pytest.py

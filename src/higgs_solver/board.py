@@ -39,6 +39,7 @@ class Board():
     matter: tuple["Matter" | None, ...] = field(eq=False)
     particle: tuple["Particle" | None, ...] = field(eq=False)
     _matter_set: frozenset["Matter"]
+    _prev_board: "Board" | None = field(eq=False)
 
     def move(self, particle: "Particle", direction: Direction) -> "Board":
         raise NotImplementedError
@@ -90,7 +91,7 @@ def new_board(
         higgs = default_board(width, height, False)
     if particle is None:
         particle = default_board(width, height)
-    if matter is None:
+    if matter is None:      # TODO: initialisation of matter
         matter = default_board(width, height)
 
     if _matter_set is None:
@@ -108,7 +109,8 @@ def new_board(
         higgs,
         matter,
         particle,
-        _matter_set
+        _matter_set,
+        None
     )
 
 
@@ -132,6 +134,6 @@ def straight_filter(width: int, height: int) \
             up: UpFilter = \
                 tuple(range(y + x - width, -1, -width))
             # reversed(range(x, y + x, width))
-            lookup_table.append((left, right, up, down))
+            lookup_table.append((right, down, left, up))
 
     return tuple(lookup_table)

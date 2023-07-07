@@ -1,5 +1,6 @@
-from enum import CONTINUOUS, NAMED_FLAGS, Enum, Flag, verify, auto
-from typing import TYPE_CHECKING
+from collections.abc import Iterator, Set
+from enum import CONTINUOUS, NAMED_FLAGS, Enum, Flag, auto, verify
+from typing import TYPE_CHECKING, Literal
 
 from attrs import define, field
 
@@ -8,7 +9,7 @@ if TYPE_CHECKING:
 
 
 @verify(NAMED_FLAGS, CONTINUOUS)
-class Colour(Flag):
+class ColourType(Flag):
     RED = auto()
     GREEN = auto()
     BLUE = auto()
@@ -26,10 +27,53 @@ class MatterType(Enum):
     NEUTRON = auto()
     STABLE_NUCLEUS = auto()
     UNSTABLE_NUCLEUS = auto()
+
     WBOSON = auto()     # tentative
-    HADRON = auto()
     PION = auto()
-    QUARK = auto()
+    BARYON = auto()
+    HADRON = auto()
+    NEG_QUARK = auto()
+    POS_QUARK = auto()
+
+
+@verify(CONTINUOUS)
+class ParticleType(Enum):
+    CHARGED_LEPTON = auto()
+    NEUTRINO = auto()
+    PROTON = auto()
+    NEUTRON = auto()
+
+    WBOSON = auto()     # tentative
+    NEG_QUARK = auto()
+    POS_QUARK = auto()
+
+
+@verify(CONTINUOUS)
+class GenerationType(Enum):
+    FIRST = auto()
+    SECOND = auto()
+    THIRD = auto()
+
+
+@verify(CONTINUOUS)
+class ChargeType(Enum):
+    NEGATIVE = -1
+    NEUTRAL = 0
+    POSITIVE = 1
+
+
+@verify(CONTINUOUS)
+class WeightType(Enum):
+    LIGHT = 0
+    MEDIUM = 1
+    HEAVY = 2
+    MASSIVE = 3
+
+
+@verify(CONTINUOUS)
+class AntiType(Enum):
+    ORDINARY = 0
+    ANTI = 1
 
 
 @verify(CONTINUOUS)
@@ -63,18 +107,29 @@ class DecayType(Flag):
 
 
 @define(frozen=True)
-class Matter:  # add individual?
-    mass: int
-    charge: int
-    colour: Colour
+class Matter(Set):  # add individual?
+    particle_set: frozenset["Particle | Matter"]
     type: MatterType
-    matter_set: frozenset["Particle | Matter"]
+    anti: AntiType
+    mass: WeightType
+    charge: ChargeType
+    colour: ColourType
+
+    def __contains__(self, value) -> bool:
+        return value in self.particle_set
+
+    def __iter__(self) -> Iterator["Particle | Matter"]:
+        return iter(self.particle_set)
+
+    def __len__(self) -> int:
+        return len(self.particle_set)
 
     def generate_function(self):
         raise NotImplementedError
 
     # pylint: disable=unused-argument
-    def move(self, board: "Board", direction: "Direction") -> "Board":
+    def move(self, board: "Board", direction: "Direction") \
+            -> "Board | Literal[False]":
         return board
 
 
@@ -82,6 +137,16 @@ class Matter:  # add individual?
 class Particle:
     x: int
     y: int
-    mass: int = field(default=0)
-    charge: int = field(default=0)
-    colour: Colour = field(default=Colour.WHITE)
+    type: ParticleType
+    generation: GenerationType
+
+    anti: AntiType = field(default=AntiType.ORDINARY)
+    mass: WeightType = field(default=WeightType.LIGHT)
+    charge: ChargeType = field(default=ChargeType.NEUTRAL)
+    colour: ColourType = field(default=ColourType.WHITE)
+
+    def is_annihilation(self, other: "Particle") -> bool:
+        return (self.type == other.type) & \
+               (self.generation == other.generation) & \
+               (self.colour == other.colour) & \
+               (self.anti != other.anti)
