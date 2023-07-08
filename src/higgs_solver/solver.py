@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # learn threading
 
 # create visited boards set

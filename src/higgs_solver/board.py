@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import CONTINUOUS, Enum, verify
 from typing import TYPE_CHECKING, TypeAlias, TypeVar, overload
 
@@ -32,16 +34,16 @@ class Board():
     width: int
     height: int
     goals: tuple[int, ...]
-    obstacles: tuple["ObstacleType" | None, ...]
-    holes: tuple["HoleType" | None, ...]
-    decay: tuple["DecayType" | None, ...]
+    obstacles: tuple[ObstacleType | None, ...]
+    holes: tuple[HoleType | None, ...]
+    decay: tuple[DecayType | None, ...]
     higgs: tuple[bool, ...]
-    matter: tuple["Matter" | None, ...] = field(eq=False)
-    particle: tuple["Particle" | None, ...] = field(eq=False)
-    _matter_set: frozenset["Matter"]
-    _prev_board: "Board" | None = field(eq=False)
+    matter: tuple[Matter | None, ...] = field(eq=False)
+    particle: tuple[Particle | None, ...] = field(eq=False)
+    _matter_set: frozenset[Matter]
+    _prev_board: Board | None = field(eq=False)
 
-    def move(self, particle: "Particle", direction: Direction) -> "Board":
+    def move(self, particle: Particle, direction: Direction) -> Board:
         raise NotImplementedError
         matter = self.matter[particle.x + self.width * particle.y]
         return matter.move(self, particle, direction)
@@ -70,13 +72,13 @@ def new_board(
         height: int,
         *,
         goals: tuple[int, ...] | None,
-        obstacles: tuple["ObstacleType" | None, ...] | None,
-        holes: tuple["HoleType" | None, ...] | None,
-        decay: tuple["DecayType" | None, ...] | None,
+        obstacles: tuple[ObstacleType | None, ...] | None,
+        holes: tuple[HoleType | None, ...] | None,
+        decay: tuple[DecayType | None, ...] | None,
         higgs: tuple[bool, ...] | None,
-        matter: tuple["Matter" | None, ...] | None,
-        particle: tuple["Particle" | None, ...] | None,
-        _matter_set: frozenset["Matter"] | None,
+        matter: tuple[Matter | None, ...] | None,
+        particle: tuple[Particle | None, ...] | None,
+        _matter_set: frozenset[Matter] | None,
 ) -> Board:
     r"""Returns a generic board class for game"""
     if goals is None:
