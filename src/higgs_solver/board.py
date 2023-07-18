@@ -1,54 +1,43 @@
 from __future__ import annotations
 
-from enum import CONTINUOUS, Enum, verify
-from typing import TYPE_CHECKING, TypeAlias, TypeVar, overload
+from typing import TypeVar, overload
 
-from attrs import define, field
+from attrs import field, frozen
 
-if TYPE_CHECKING:
-    from .particle import (DecayType, HoleType, ObstacleType, Particle,
-                           Matter)
+# pylint: disable=unused-import
+# flake8: noqa: F401
+from higgs_solver.protocol import (AntiType, BoardProtocol, ChargeType,
+                                   ColourType, DecayType, Direction,
+                                   DownFilter, GeneralFilter, HoleType,
+                                   LeftFilter, MassType, MatterProtocol,
+                                   MatterType, ObstacleType, ParticleProtocol,
+                                   RightFilter, UpFilter)
 
 T = TypeVar('T')
 
-DirectionFilter: TypeAlias = tuple[int, ...]
-LeftFilter: TypeAlias = DirectionFilter
-RightFilter: TypeAlias = DirectionFilter
-UpFilter: TypeAlias = DirectionFilter
-DownFilter: TypeAlias = DirectionFilter
-GeneralFilter: TypeAlias = \
-    tuple[LeftFilter, RightFilter, UpFilter, DownFilter]
 
-
-@verify(CONTINUOUS)
-class Direction(Enum):
-    LEFT = 0
-    RIGHT = 1
-    UP = 2
-    DOWN = 3
-
-
-@define(frozen=True)
-class Board():
+@frozen
+class Board(BoardProtocol):
     r"""Generic board class for game"""
     width: int
     height: int
-    goals: tuple[int, ...]
+    goals: frozenset[int]
     obstacles: tuple[ObstacleType | None, ...]
     holes: tuple[HoleType | None, ...]
     decay: tuple[DecayType | None, ...]
     higgs: tuple[bool, ...]
-    matter: tuple[Matter | None, ...] = field(eq=False)
-    particle: tuple[Particle | None, ...] = field(eq=False)
-    _matter_set: frozenset[Matter]
-    _prev_board: Board | None = field(eq=False)
+    matter: tuple[MatterProtocol | None, ...] = field(eq=False)
+    particle: tuple[ParticleProtocol | None, ...] = field(eq=False)
+    _filter: tuple[GeneralFilter, ...] = field(eq=False)
+    _matter_set: frozenset[MatterProtocol]
+    _prev_board: BoardProtocol | None = field(eq=False)
 
-    def move(self, particle: Particle, direction: Direction) -> Board:
-        raise NotImplementedError
-        matter = self.matter[particle.x + self.width * particle.y]
-        return matter.move(self, particle, direction)
+    # def move(self, particle: ParticleProtocol, direction: Direction) -> Board
+    #     raise NotImplementedError
+    #     matter = self.matter[particle.x + self.width * particle.y]
+    #     return matter.move(self, particle, direction)
 
-    def move_all(self) -> set["Board"]:
+    def move_all(self) -> frozenset[Board]:
         raise NotImplementedError
         return {Matter.move_all(self) for Matter in self._matter_set}
 
@@ -71,18 +60,20 @@ def new_board(
         width: int,
         height: int,
         *,
-        goals: tuple[int, ...] | None,
-        obstacles: tuple[ObstacleType | None, ...] | None,
-        holes: tuple[HoleType | None, ...] | None,
-        decay: tuple[DecayType | None, ...] | None,
-        higgs: tuple[bool, ...] | None,
-        matter: tuple[Matter | None, ...] | None,
-        particle: tuple[Particle | None, ...] | None,
-        _matter_set: frozenset[Matter] | None,
+        goals: frozenset[int] | None = None,
+        obstacles: tuple[ObstacleType | None, ...] | None = None,
+        holes: tuple[HoleType | None, ...] | None = None,
+        decay: tuple[DecayType | None, ...] | None = None,
+        higgs: tuple[bool, ...] | None = None,
+        matter: tuple[MatterProtocol | None, ...] | None = None,
+        particle: tuple[ParticleProtocol | None, ...] | None = None,
+        _filter: tuple[GeneralFilter, ...] | None = None,
+        _matter_set: frozenset[MatterProtocol] | None = None,
+        _prev_board: BoardProtocol | None = None,
 ) -> Board:
     r"""Returns a generic board class for game"""
     if goals is None:
-        goals = ()
+        goals = frozenset()
     if obstacles is None:
         obstacles = default_board(width, height)
     if holes is None:
@@ -96,8 +87,10 @@ def new_board(
     if matter is None:      # TODO: initialisation of matter
         matter = default_board(width, height)
 
+    if _filter is None:
+        _filter = straight_filter(width, height)
     if _matter_set is None:
-        _matter_mutable_set: list["Matter"] = \
+        _matter_mutable_set: list[MatterProtocol] = \
             [elem for elem in matter if elem is not None]
         _matter_set = frozenset(_matter_mutable_set)
 
@@ -111,8 +104,9 @@ def new_board(
         higgs,
         matter,
         particle,
+        _filter,
         _matter_set,
-        None
+        _prev_board
     )
 
 
