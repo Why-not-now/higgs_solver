@@ -8,19 +8,20 @@ def main():
     obstacles = (
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
-        ObstacleType.STRONG, None, None, None, None, None, None,
+        ObstacleType.STRONG, None, None, None, None, None, ObstacleType.STRONG,
         None, None, None, None, None, None, None,
-        ObstacleType.STRONG, None, None, None, None, None, None,
+        ObstacleType.STRONG, None, None, None, None, None, ObstacleType.STRONG,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
     )
-    test_electron = Electron(21)
+    test_electron1 = Electron(21)
+    test_electron2 = Electron(27)
     matter = (
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
-        test_electron, None, None, None, None, None, None,
+        test_electron1, None, None, None, None, None, test_electron2,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
@@ -30,7 +31,7 @@ def main():
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
-        test_electron, None, None, None, None, None, None,
+        test_electron1, None, None, None, None, None, test_electron2,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,

@@ -41,10 +41,10 @@ def electric_single(
         axis = BoolPair(False, False)   # BoolPair(right/up, left/down) pos,neg
         axis |= electric_path(board,
                               charge,
-                              all_filter[straight[0].value])
+                              all_filter[straight[0].value][1:])
         axis |= electric_path(board,
                               charge,
-                              all_filter[straight[1].value]).reverse()
+                              all_filter[straight[1].value][1:]).reverse()
         match axis:
             case BoolPair(True, False):
                 single[straight[1]] = None
