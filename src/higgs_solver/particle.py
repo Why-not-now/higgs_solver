@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any, Self, cast
+from typing import Any, Self, TypeVar, cast
 
 from attr import evolve
 from attrs import field, frozen
@@ -11,11 +11,12 @@ from higgs_solver.logic import (anti_single_check, electric_single,
                                 matter_collision_single_check,
                                 obstacle_destroy_single_check,
                                 obstacle_exists_single_check)
-from higgs_solver.protocol import (AntiProtocol, AntiSingleProtocol, AntiType,
-                                   BoardProtocol, ChargeType, ColourType,
-                                   MassType, MatterProtocol, PathAttrs,
-                                   PathSingle, PathSingleProtocol,
-                                   SingleProtocol, new_single_start)
+from higgs_solver.protocol import (AntiSingleProtocol, AntiType, BoardProtocol,
+                                   ChargeType, ColourType, MassType,
+                                   MatterProtocol, PathAttrs, PathSingle,
+                                   PathSingleProtocol, new_single_start)
+
+AST_co = TypeVar("AST_co", covariant=True, bound="AntiSingleProtocol")
 
 # def freeze_setatr(self, *args) -> NoReturn:
 #     """Disables setting attributes via
@@ -38,7 +39,7 @@ def fixed_attr(default: Any, **kwargs):
 
 
 @frozen(cache_hash=True)
-class Electron(SingleProtocol, AntiProtocol):
+class Electron(AntiSingleProtocol):
     position: int
     mass: MassType = fixed_attr(MassType.LIGHT)
     charge: ChargeType = fixed_attr(ChargeType.NEGATIVE)
@@ -85,7 +86,10 @@ class Electron(SingleProtocol, AntiProtocol):
 
                 obstacles = list(path.board.obstacles)      # remove obstacle
                 obstacles[path.current_pos] = None
-                path.board = evolve(path.board, obstacles=tuple(obstacles))
+                path.board = evolve(
+                    path.board,
+                    obstacles=tuple(obstacles)
+                )  # type: ignore
 
             if hole_single_check(path):                 # hole
                 return path.board
@@ -107,7 +111,7 @@ class Electron(SingleProtocol, AntiProtocol):
         return False
 
     @staticmethod
-    def is_path_annihilation(path: PathSingleProtocol[AntiSingleProtocol],
+    def is_path_annihilation(path: PathSingleProtocol[AST_co],
                              other: MatterProtocol | None) -> bool:
         if isinstance(other, Electron):
             if 'anti' in path.attrs_dict:

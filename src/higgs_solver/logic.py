@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-# pylint: disable=unused-import
-# flake8: noqa: F401
 from typing import TypeVar, cast
 
-from higgs_solver.protocol import (AntiProtocol, AntiSingleProtocol, AntiType,
-                                   AttractType, BoardProtocol, BoolPair,
-                                   ChargeType, Direction, DirectionFilter,
-                                   ObstacleType, PathManyProtocol,
-                                   PathSingleProtocol, SingleProtocol, Start,
-                                   horizontal, vertical)
+from higgs_solver.protocol import (AntiSingleProtocol, AttractType,
+                                   BoardProtocol, BoolPair, ChargeType,
+                                   DirectionFilter, ObstacleType,
+                                   PathManyProtocol, PathSingleProtocol,
+                                   SingleProtocol, Start, horizontal, vertical)
 
+ST_co = TypeVar("ST_co", covariant=True, bound=SingleProtocol)
+AST_co = TypeVar("AST_co", covariant=True, bound=AntiSingleProtocol)
 PST = TypeVar("PST", bound=PathSingleProtocol)
 PMT = TypeVar("PMT", bound=PathManyProtocol)
 
@@ -61,13 +60,13 @@ def electric_single(
 
 
 def matter_collision_single_check(
-        single: PathSingleProtocol[SingleProtocol]
+        single: PathSingleProtocol[ST_co]
 ) -> bool:
     return single.board.matter[single.current_pos] is not None
 
 
 def obstacle_destroy_single_check(
-        single: PathSingleProtocol[SingleProtocol]
+        single: PathSingleProtocol[ST_co]
 ) -> bool:
     obstacle = cast(ObstacleType, single.board.obstacles[single.current_pos])
     if single.attraction is not AttractType.NONE:
@@ -76,13 +75,13 @@ def obstacle_destroy_single_check(
 
 
 def obstacle_exists_single_check(
-        single: PathSingleProtocol[SingleProtocol]
+        single: PathSingleProtocol[ST_co]
 ) -> bool:
-    return single.board.obstacles[single.current_pos] is None
+    return single.board.obstacles[single.current_pos] is not None
 
 
 def anti_single_check(
-        single: PathSingleProtocol[AntiSingleProtocol]
+        single: PathSingleProtocol[AST_co]
 ) -> bool:
     return single.type.is_path_annihilation(
         single,
@@ -91,7 +90,7 @@ def anti_single_check(
 
 
 def hole_single_check(
-        single: PathSingleProtocol[SingleProtocol]
+        single: PathSingleProtocol[ST_co]
 ) -> bool:
     if (hole := single.board.holes[single.current_pos]) is None:
         return False

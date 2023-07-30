@@ -6,10 +6,12 @@ from enum import CONTINUOUS, NAMED_FLAGS, Enum, Flag, auto, verify
 from typing import (Generic, Protocol, Required, Self, TypeAlias, TypedDict,
                     TypeVar)
 
-from attrs import define, field, frozen
+from attrs import define, field
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
+AST_co = TypeVar("AST_co", covariant=True, bound="AntiSingleProtocol")
+BT = TypeVar("BT", bound="BoardProtocol")
 MTT = TypeVar("MTT", bound="MatterProtocol")
 ST = TypeVar("ST", bound="SingleProtocol")
 PTT = TypeVar("PTT", bound="PathTopProtocol")
@@ -214,7 +216,6 @@ class SetProtocol(Generic[T_co], Protocol):
         ...
 
 
-@frozen
 class BoardProtocol(Protocol):
     r"""Generic board class for game"""
     width: int
@@ -230,7 +231,7 @@ class BoardProtocol(Protocol):
     matter_set: frozenset[MatterProtocol]
     prev_board: BoardProtocol | None
 
-    def move_all(self) -> frozenset[Self]:
+    def move_all(self) -> frozenset[BoardProtocol]:
         ...
 
     def remove_single(self, single: SingleProtocol) -> Self:
@@ -240,13 +241,12 @@ class BoardProtocol(Protocol):
         ...
 
 
-@frozen
-class MatterProtocol(Protocol):
+class MatterProtocol(Protocol[BT]):
     mass: MassType
     charge: ChargeType
     colour: ColourType
 
-    def move_all(self, board: BoardProtocol) -> frozenset[BoardProtocol]:
+    def move_all(self, board: BT) -> frozenset[BT]:
         ...
 
     def to_dict(self) -> PathAttrs:
@@ -257,19 +257,16 @@ class MatterProtocol(Protocol):
         ...
 
 
-@frozen
 class ParticleProtocol(Protocol):
     position: int
 
 
-@frozen
 class ManyProtocol(SetProtocol[MatterProtocol], MatterProtocol, Protocol):
     matter_set: frozenset[MatterProtocol]
     horizontal: tuple[int]
     vertical: tuple[int]
 
 
-@frozen
 class SingleProtocol(MatterProtocol, ParticleProtocol, Protocol):
     ...
 
@@ -281,7 +278,7 @@ class AntiProtocol(Protocol):
         ...
 
     @staticmethod
-    def is_path_annihilation(path: PathSingleProtocol[AntiSingleProtocol],
+    def is_path_annihilation(path: PathSingleProtocol[AST_co],
                              other: MatterProtocol | None) -> bool:
         ...
 
@@ -333,7 +330,7 @@ class PathManyProtocol(PathTopProtocol, Protocol):
 
 
 @define
-class PathSingle(Generic[ST], PathSingleProtocol):
+class PathSingle(PathSingleProtocol[ST]):
     type: type[ST]
     position: DirectionFilter
     board: BoardProtocol
@@ -343,13 +340,14 @@ class PathSingle(Generic[ST], PathSingleProtocol):
     current_pos: int = field(default=0)
     undo: PathTopProtocol | None = field(default=None)
 
-    def __post_init__(self) -> None:
+    def __attrs_post_init__(self) -> None:  # pylint: disable=bad-dunder-name
         self.current_pos = self.position[self.steps]
 
     def advance(self) -> bool:
-        if self.steps >= len(self.position):
+        if self.steps >= len(self.position) - 1:
             return False
-        self.undo = deepcopy(self)
+        if self.steps:  # if self.steps == 0
+            self.undo = deepcopy(self)
         self.steps += 1
         self.current_pos = self.position[self.steps]
         return True
@@ -386,7 +384,7 @@ class StartProtocol(Generic[PTT], Protocol):
         ...
 
 
-class Start(Generic[PTT], StartProtocol):
+class Start(StartProtocol[PTT]):
     def __init__(self, move: list[PTT | None]) -> None:
         self.direction_info = move
 

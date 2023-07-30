@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 from typing import Self, TypeVar, overload
-from attr import evolve
 
+from attr import evolve
 from attrs import field, frozen
 
-# pylint: disable=unused-import
-# flake8: noqa: F401
-from higgs_solver.protocol import (AntiType, BoardProtocol, ChargeType,
-                                   ColourType, DecayType, Direction,
-                                   DownFilter, GeneralFilter, HoleType,
-                                   LeftFilter, MassType, MatterProtocol,
-                                   ObstacleType, ParticleProtocol,
-                                   RightFilter, SingleProtocol, UpFilter)
+from higgs_solver.protocol import (BoardProtocol, DecayType, DownFilter,
+                                   GeneralFilter, HoleType, LeftFilter,
+                                   MatterProtocol, ObstacleType,
+                                   ParticleProtocol, RightFilter,
+                                   SingleProtocol, UpFilter)
 
 T = TypeVar('T')
 
@@ -27,11 +24,11 @@ class Board(BoardProtocol):
     holes: tuple[HoleType | None, ...]
     decay: tuple[DecayType | None, ...]
     higgs: tuple[bool, ...]
-    matter: tuple[MatterProtocol | None, ...] = field(eq=False)
+    matter: tuple[MatterProtocol[Board] | None, ...] = field(eq=False)
     particle: tuple[ParticleProtocol | None, ...] = field(eq=False)
 
     filter: tuple[GeneralFilter, ...] = field(eq=False)
-    matter_set: frozenset[MatterProtocol]
+    matter_set: frozenset[MatterProtocol[Board]]  # type: ignore
     prev_board: Board | None = field(eq=False)
 
     # def move(self, particle: ParticleProtocol, direction: Direction) -> Board
@@ -40,8 +37,9 @@ class Board(BoardProtocol):
     #     return matter.move(self, particle, direction)
 
     def move_all(self) -> frozenset[Board]:
-        raise NotImplementedError
-        return {Matter.move_all(self) for Matter in self.matter_set}
+        return frozenset().union(*(
+            Matter.move_all(self) for Matter in self.matter_set
+        ))
 
     def remove_single(self, single: SingleProtocol) -> Self:
         matter = list(self.matter)
@@ -120,9 +118,9 @@ def new_board(
     if _filter is None:
         _filter = straight_filter(width, height)
     if _matter_set is None:
-        _matter_mutable_set: list[MatterProtocol] = \
-            [elem for elem in matter if elem is not None]
-        _matter_set = frozenset(_matter_mutable_set)
+        # _matter_mutable_set: list[MatterProtocol] = \
+        #     [elem for elem in matter if elem is not None]
+        _matter_set = frozenset(elem for elem in matter if elem is not None)
 
     return Board(
         width,
@@ -151,14 +149,14 @@ def straight_filter(width: int, height: int) \
     for y in range(0, length, width):
         for x in range(width):
             right: RightFilter = \
-                tuple(range(y + x + 1, y + width))
+                tuple(range(y + x, y + width))
             down: DownFilter = \
-                tuple(range(y + x + width, length, width))
+                tuple(range(y + x, length, width))
             left: LeftFilter = \
-                tuple(range(y + x - 1, y - 1, -1))
+                tuple(range(y + x, y - 1, -1))
             # reversed(range(y, y + x))
             up: UpFilter = \
-                tuple(range(y + x - width, -1, -width))
+                tuple(range(y + x, -1, -width))
             # reversed(range(x, y + x, width))
             lookup_table.append((right, down, left, up))
 
