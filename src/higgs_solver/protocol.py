@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Hashable, Iterator, Sequence
+from collections.abc import Iterator, MutableSequence, Sequence
+from copy import deepcopy
 from enum import CONTINUOUS, NAMED_FLAGS, Enum, Flag, auto, verify
-from typing import Any, Generic, Protocol, Self, TypeAlias, TypeVar
+from typing import (Generic, Protocol, Required, Self, TypeAlias, TypedDict,
+                    TypeVar)
 
 from attrs import define, field, frozen
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
+MTT = TypeVar("MTT", bound="MatterProtocol")
+ST = TypeVar("ST", bound="SingleProtocol")
+PTT = TypeVar("PTT", bound="PathTopProtocol")
 
 DirectionFilter: TypeAlias = tuple[int, ...]
 LeftFilter: TypeAlias = DirectionFilter
@@ -16,9 +21,13 @@ RightFilter: TypeAlias = DirectionFilter
 UpFilter: TypeAlias = DirectionFilter
 GeneralFilter: TypeAlias = \
     tuple[LeftFilter, RightFilter, UpFilter, DownFilter]
-OptionalMove: TypeAlias = "MovingProtocol | None"
-AllMoveDirection: TypeAlias = \
-    tuple[OptionalMove, OptionalMove, OptionalMove, OptionalMove]
+
+
+class PathAttrs(TypedDict):
+    mass: Required[MassType]
+    charge: ChargeType
+    colour: ColourType
+    anti: AntiType
 
 
 @verify(CONTINUOUS)
@@ -41,6 +50,13 @@ class Direction(Enum):
     def anticlockwise(self) -> Direction:
         return Direction(self.value - 1)
 
+    def opposite(self) -> Direction:
+        return Direction(self.value + 2)
+
+
+horizontal = (Direction.RIGHT, Direction.LEFT)
+vertical = (Direction.DOWN, Direction.UP)
+
 
 @verify(NAMED_FLAGS, CONTINUOUS)
 class ColourType(Flag):
@@ -53,20 +69,20 @@ class ColourType(Flag):
     WHITE = RED | GREEN | BLUE
 
 
-@verify(CONTINUOUS)
-class MatterType(Enum):
-    CHARGED_LEPTON = auto()
-    NEUTRINO = auto()
-    PROTON = auto()
-    NEUTRON = auto()
-    STABLE_NUCLEUS = auto()
-    UNSTABLE_NUCLEUS = auto()
+# @verify(CONTINUOUS)
+# class MatterType(Enum):
+#     CHARGED_LEPTON = auto()
+#     NEUTRINO = auto()
+#     PROTON = auto()
+#     NEUTRON = auto()
+#     STABLE_NUCLEUS = auto()
+#     UNSTABLE_NUCLEUS = auto()
 
-    WBOSON = auto()     # tentative
-    PION = auto()
-    BARYON = auto()
-    NEG_QUARK = auto()
-    POS_QUARK = auto()
+#     WBOSON = auto()     # tentative
+#     PION = auto()
+#     BARYON = auto()
+#     NEG_QUARK = auto()
+#     POS_QUARK = auto()
 
 
 # @verify(CONTINUOUS)
@@ -146,6 +162,13 @@ class AttractType(Enum):
     STRONG = 2
 
 
+@verify(CONTINUOUS)
+class Collision(Enum):
+    NONE = 0
+    NORMAL = 1
+    ANTI = 2
+
+
 # pylint: disable=eq-without-hash
 class SetProtocol(Generic[T_co], Protocol):
     def __contains__(self, value) -> bool:
@@ -203,143 +226,242 @@ class BoardProtocol(Protocol):
     higgs: tuple[bool, ...]
     matter: tuple[MatterProtocol | None, ...]
     particle: tuple[ParticleProtocol | None, ...]
-    _filter: tuple[GeneralFilter, ...]
-    _matter_set: frozenset[MatterProtocol]
-    _prev_board: Self | None
+    filter: tuple[GeneralFilter, ...]
+    matter_set: frozenset[MatterProtocol]
+    prev_board: BoardProtocol | None
 
     def move_all(self) -> frozenset[Self]:
         ...
 
+    def remove_single(self, single: SingleProtocol) -> Self:
+        ...
 
-@frozen
-class MatterProtocol(SetProtocol["ParticleProtocol"], Hashable, Protocol):
-    particle_set: frozenset[ParticleProtocol]
-    type: MatterType
-    mass: MassType
-    charge: ChargeType
-    colour: ColourType
-    anti: AntiType
-
-    def move_all(self, board: BoardProtocol) -> frozenset[BoardProtocol]:
+    def add_single(self, single: SingleProtocol) -> Self:
         ...
 
 
 @frozen
-class ManyProtocol(MatterProtocol, Protocol):
-    matter_set: frozenset[MatterProtocol]
+class MatterProtocol(Protocol):
+    mass: MassType
+    charge: ChargeType
+    colour: ColourType
+
+    def move_all(self, board: BoardProtocol) -> frozenset[BoardProtocol]:
+        ...
+
+    def to_dict(self) -> PathAttrs:
+        ...
+
+    @classmethod
+    def from_path(cls, path: PathProtocol[Self]) -> Self:
+        ...
 
 
 @frozen
 class ParticleProtocol(Protocol):
     position: int
+
+
+@frozen
+class ManyProtocol(SetProtocol[MatterProtocol], MatterProtocol, Protocol):
+    matter_set: frozenset[MatterProtocol]
+    horizontal: tuple[int]
+    vertical: tuple[int]
+
+
+@frozen
+class SingleProtocol(MatterProtocol, ParticleProtocol, Protocol):
+    ...
+
+
+class AntiProtocol(Protocol):
     anti: AntiType
 
-    def particle_init(self, other: MovingParticle) -> None:
+    def is_annihilation(self, other: MatterProtocol | None) -> bool:
         ...
 
-    def is_annihilation(self, other: ParticleProtocol) -> bool:
-        ...
-
-
-class StartingProtocol(Protocol):
-    matter: MatterProtocol
-    _direction_info: AllMoveDirection
-
-    def __getitem__(self, index: Direction) -> OptionalMove:
-        ...
-
-    def __setitem__(self, index: Direction, value: OptionalMove):
-        ...
-
-    def __iter__(self) -> Iterator[OptionalMove]:
-        ...
-
-    def nonempty(self) -> Iterator[MovingProtocol]:
+    @staticmethod
+    def is_path_annihilation(path: PathSingleProtocol[AntiSingleProtocol],
+                             other: MatterProtocol | None) -> bool:
         ...
 
 
-# class MovingParticleProtocol(Protocol):
-#     ty pe: t ype[ParticleProtocol]
-#     position: list[int]
-#     prev_position: int | None
-#     anti: AntiType
+class AntiSingleProtocol(SingleProtocol, AntiProtocol, Protocol):
+    ...
 
 
-class MovingProtocol(Protocol):
-    mass: MassType
-    charge: ChargeType
-    colour: ColourType
-    anti: AntiType
+# class ChargeProtocol(Protocol):
+#     charge: ChargeType
+
+#     def attraction(self, other: ParticleProtocol) -> bool:
+#         ...
+
+
+class PathProtocol(Generic[MTT], Protocol):
+    type: type[MTT]
+    attrs_dict: PathAttrs
+
+
+class PathTopProtocol(PathProtocol, Protocol):
     steps: int
     attraction: AttractType
-    replace: dict[str, Any]
+    board: BoardProtocol
+    undo: PathTopProtocol | None
+
+    def advance(self) -> bool:
+        ...
+
+    def board_add(self) -> BoardProtocol:
+        ...
 
 
-@define(slots=False)
-class MovingParticle:
-    particle: ParticleProtocol
+class PathParticleProtocol(PathProtocol, Protocol):
     position: DirectionFilter
-    type: type[ParticleProtocol]
+    current_pos: int
 
-    def __attrs_post_init__(self) -> None:  # pylint: disable=bad-dunder-name
-        self.particle.particle_init(self)
 
-    @classmethod
-    def from_particle(
-            cls,
-            particle: ParticleProtocol,
-            position: DirectionFilter
-    ) -> MovingParticle:
-        return cls(particle, position, type(particle))
+class PathSingleProtocol(Generic[ST],
+                         PathTopProtocol,
+                         PathParticleProtocol,
+                         Protocol):
+    type: type[ST]
 
-    def is_annihilation(self, other: ParticleProtocol) -> bool:
-        return self.type.is_annihilation(self, other)  # type: ignore
+
+class PathManyProtocol(PathTopProtocol, Protocol):
+    matter_set: set[PathProtocol]
+    particle_set: set[PathParticleProtocol]
 
 
 @define
-class Moving:
-    type: type[ParticleProtocol]
-    particle_set: list[MovingParticle]
-    mass: MassType
-    charge: ChargeType
-    colour: ColourType
-    anti: AntiType
+class PathSingle(Generic[ST], PathSingleProtocol):
+    type: type[ST]
+    position: DirectionFilter
+    board: BoardProtocol
+    attrs_dict: PathAttrs
     steps: int = field(default=0)
     attraction: AttractType = field(default=AttractType.NONE)
-    replace: dict[str, Any] = field(factory=set)
+    current_pos: int = field(default=0)
+    undo: PathTopProtocol | None = field(default=None)
+
+    def __post_init__(self) -> None:
+        self.current_pos = self.position[self.steps]
+
+    def advance(self) -> bool:
+        if self.steps >= len(self.position):
+            return False
+        self.undo = deepcopy(self)
+        self.steps += 1
+        self.current_pos = self.position[self.steps]
+        return True
+
+    @classmethod
+    def from_single_direction(
+            cls,
+            particle: ST,
+            position: DirectionFilter,
+            board: BoardProtocol
+    ) -> PathSingle:
+        return cls(type(particle), position, board, particle.to_dict())
+
+    def board_add(self) -> BoardProtocol:
+        return self.board.add_single(self.type.from_path(self))
 
 
-def new_particle_move(
-        particle: ParticleProtocol,
+class StartProtocol(Generic[PTT], Protocol):
+    direction_info: MutableSequence[PTT | None]
+
+    def __init__(self, move: list[PTT]) -> None:
+        ...
+
+    def __getitem__(self, index: Direction) -> PTT | None:
+        ...
+
+    def __setitem__(self, index: Direction, value: PTT | None):
+        ...
+
+    def __iter__(self) -> Iterator[PTT | None]:
+        ...
+
+    def non_empty(self) -> Iterator[PTT]:
+        ...
+
+
+class Start(Generic[PTT], StartProtocol):
+    def __init__(self, move: list[PTT | None]) -> None:
+        self.direction_info = move
+
+    def __getitem__(self, index: Direction) -> PTT | None:
+        return self.direction_info[index.value]
+
+    def __setitem__(self, index: Direction, value: PTT | None):
+        self.direction_info[index.value] = value
+
+    def __iter__(self) -> Iterator[PTT | None]:
+        return iter(self.direction_info)
+
+    def non_empty(self) -> Iterator[PTT]:
+        return (value for value in self.direction_info if value is not None)
+
+
+def new_single_start(
+        single: SingleProtocol,
         board: BoardProtocol
-) -> tuple[MovingParticle, ...]:
-    direction_filters = board._filter[particle.position]
-    return tuple(MovingParticle.from_particle(
-        particle,
-        direction_filters[direction.value]
-    ) for direction in Direction)
+) -> Start[PathSingle]:
+    board = board.remove_single(single)
+
+    direction_filters = board.filter[single.position]
+    return Start([PathSingle.from_single_direction(
+        single,
+        direction_filters[direction.value],
+        board
+    ) for direction in Direction])
 
 
-def new_moving(
-        cls: type[ParticleProtocol],
-        matter: MatterProtocol,
-        board: BoardProtocol
-) -> list[Moving]:
-    particles = tuple(new_particle_move(p, board) for p in matter.particle_set)
-    return [Moving(
-        cls,
-        [p[direction.value] for p in particles],
-        matter.mass,
-        matter.charge,
-        matter.colour,
-        matter.anti
-    ) for direction in Direction]
+# @define
+# class PathSingle(PathSingleProtocol):
+#     position: DirectionFilter
+#     ty pe: ty pe[ParticleProtocol]
+#     attrs_dict: PathAttrs
+
+#     @classmethod
+#     def from_single(
+#             cls,
+#             particle: SingleProtocol,
+#             position: DirectionFilter
+#     ) -> PathSingle:
+#         return cls(position, type(particle), particle.to_dict())
+
+
+# def new_particle_move(
+#         particle: ParticleProtocol,
+#         board: BoardProtocol
+# ) -> tuple[PathParticle, ...]:
+#     direction_filters = board._filter[particle.position]
+#     return tuple(PathParticle.from_single(
+#         particle,
+#         direction_filters[direction.value]
+#     ) for direction in Direction)
+
+
+# def new_moving(
+#         cls: type[SingleProtocol],
+#         single: SingleProtocol,
+#         board: BoardProtocol
+# ) -> list[Move]:
+#     all_moving = new_particle_move(single, board)
+#     return [Move(
+#         cls,
+#         all_moving[direction.value],
+#         single.mass,
+#         single.charge,
+#         single.colour
+#     ) for direction in Direction]
 
 
 @define
 class BoolPair:
-    pos: bool = False
-    neg: bool = False
+    pos: bool
+    neg: bool
 
     def __or__(self, other: BoolPair | Sequence[bool]) -> BoolPair:
         if isinstance(other, BoolPair):
@@ -361,6 +483,10 @@ class BoolPair:
             return self
         raise TypeError(f"unsupported operand type(s) for |=:"
                         f"'BoolPair' and {type(other)}")
+
+    def reverse(self) -> Self:
+        self.pos, self.neg = self.neg, self.pos
+        return self
 
 
 # class _GenerationProtocol(Protocol):

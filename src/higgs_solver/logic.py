@@ -2,43 +2,111 @@ from __future__ import annotations
 
 # pylint: disable=unused-import
 # flake8: noqa: F401
-from higgs_solver.protocol import (AntiType, BoardProtocol, ChargeType,
-                                   ColourType, DirectionFilter, MassType,
-                                   MatterProtocol, MatterType,
-                                   ParticleProtocol, BoolPair)
+from typing import TypeVar, cast
+
+from higgs_solver.protocol import (AntiProtocol, AntiSingleProtocol, AntiType,
+                                   AttractType, BoardProtocol, BoolPair,
+                                   ChargeType, Direction, DirectionFilter,
+                                   ObstacleType, PathManyProtocol,
+                                   PathSingleProtocol, SingleProtocol, Start,
+                                   horizontal, vertical)
+
+PST = TypeVar("PST", bound=PathSingleProtocol)
+PMT = TypeVar("PMT", bound=PathManyProtocol)
 
 
-def _electric_f(
+def electric_path(
         board: BoardProtocol,
         charge: ChargeType,
-        directional_filter: DirectionFilter
-) -> tuple[bool, bool]:
-    for x_plus in directional_filter:
+        path: DirectionFilter
+) -> BoolPair:
+    for x_plus in path:
         if (matter := board.matter[x_plus]) is None:
             continue
         attraction = matter.charge.value * charge.value
         if attraction == -1:
-            return True, False
+            return BoolPair(True, False)
         if attraction == 1:
-            return False, True
-    return False, False
+            return BoolPair(False, True)
+    return BoolPair(False, False)
 
 
-def _electric_p(
-        board: BoardProtocol,
+def electric_single(
+        single: Start[PST],
+        charge: ChargeType,
         position: int,
-        charge: ChargeType
-):
-    all_filter = board._filter[position]
-    horizontal = BoolPair()
-    horizontal |= _electric_f(board, charge, all_filter[0])
-    horizontal |= _electric_f(board, charge, all_filter[2])[::-1]
-    match horizontal:
-        case BoolPair(pos, neg) if pos == neg:
-            hor
-    vertical = BoolPair()
-    vertical |= _electric_f(board, charge, all_filter[1])
-    vertical |= _electric_f(board, charge, all_filter[3])[::-1]
+        board: BoardProtocol
+) -> Start[PST]:
+    all_filter = board.filter[position]
+    for straight in (horizontal, vertical):
+        axis = BoolPair(False, False)   # BoolPair(right/up, left/down) pos,neg
+        axis |= electric_path(board,
+                              charge,
+                              all_filter[straight[0].value])
+        axis |= electric_path(board,
+                              charge,
+                              all_filter[straight[1].value]).reverse()
+        match axis:
+            case BoolPair(True, False):
+                single[straight[1]] = None
+                if (attracted := single[straight[0]]) is not None:
+                    attracted.attraction = AttractType.ELECTRIC
+            case BoolPair(False, True):
+                single[straight[0]] = None
+                if (attracted := single[straight[1]]) is not None:
+                    attracted.attraction = AttractType.ELECTRIC
+            # case BoolPair(pos, neg) if pos == neg:  # for checks
+            #     pass
+    return single
+
+
+def matter_collision_single_check(
+        single: PathSingleProtocol[SingleProtocol]
+) -> bool:
+    return single.board.matter[single.current_pos] is not None
+
+
+def obstacle_destroy_single_check(
+        single: PathSingleProtocol[SingleProtocol]
+) -> bool:
+    obstacle = cast(ObstacleType, single.board.obstacles[single.current_pos])
+    if single.attraction is not AttractType.NONE:
+        return obstacle.is_weak()
+    return False
+
+
+def obstacle_exists_single_check(
+        single: PathSingleProtocol[SingleProtocol]
+) -> bool:
+    return single.board.obstacles[single.current_pos] is None
+
+
+def anti_single_check(
+        single: PathSingleProtocol[AntiSingleProtocol]
+) -> bool:
+    return single.type.is_path_annihilation(
+        single,
+        single.board.matter[single.current_pos]
+    )
+
+
+def hole_single_check(
+        single: PathSingleProtocol[SingleProtocol]
+) -> bool:
+    if (hole := single.board.holes[single.current_pos]) is None:
+        return False
+    return hole.value <= single.attrs_dict['mass'].value
+
+
+# def electric_many(
+#         many: Start[PMT],
+#         charge: ChargeType,
+#         positions: list[int],
+#         board: BoardProtocol
+# ) -> Start[PMT]:
+#     for p in positions:
+#         many = electric_single(many, charge, p, board)
+#     return many
 
 
 # pre movement

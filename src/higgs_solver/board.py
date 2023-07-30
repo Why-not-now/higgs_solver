@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TypeVar, overload
+from typing import Self, TypeVar, overload
+from attr import evolve
 
 from attrs import field, frozen
 
@@ -10,8 +11,8 @@ from higgs_solver.protocol import (AntiType, BoardProtocol, ChargeType,
                                    ColourType, DecayType, Direction,
                                    DownFilter, GeneralFilter, HoleType,
                                    LeftFilter, MassType, MatterProtocol,
-                                   MatterType, ObstacleType, ParticleProtocol,
-                                   RightFilter, UpFilter)
+                                   ObstacleType, ParticleProtocol,
+                                   RightFilter, SingleProtocol, UpFilter)
 
 T = TypeVar('T')
 
@@ -28,9 +29,10 @@ class Board(BoardProtocol):
     higgs: tuple[bool, ...]
     matter: tuple[MatterProtocol | None, ...] = field(eq=False)
     particle: tuple[ParticleProtocol | None, ...] = field(eq=False)
-    _filter: tuple[GeneralFilter, ...] = field(eq=False)
-    _matter_set: frozenset[MatterProtocol]
-    _prev_board: BoardProtocol | None = field(eq=False)
+
+    filter: tuple[GeneralFilter, ...] = field(eq=False)
+    matter_set: frozenset[MatterProtocol]
+    prev_board: Board | None = field(eq=False)
 
     # def move(self, particle: ParticleProtocol, direction: Direction) -> Board
     #     raise NotImplementedError
@@ -39,7 +41,35 @@ class Board(BoardProtocol):
 
     def move_all(self) -> frozenset[Board]:
         raise NotImplementedError
-        return {Matter.move_all(self) for Matter in self._matter_set}
+        return {Matter.move_all(self) for Matter in self.matter_set}
+
+    def remove_single(self, single: SingleProtocol) -> Self:
+        matter = list(self.matter)
+        matter[single.position] = None
+        particle = list(self.particle)
+        particle[single.position] = None
+        matter_set = set(self.matter_set)
+        matter_set.remove(single)
+        board = evolve(self,
+                       matter=tuple(matter),
+                       particle=tuple(particle),
+                       matter_set=frozenset(matter_set))
+
+        return board
+
+    def add_single(self, single: SingleProtocol) -> Self:
+        matter = list(self.matter)
+        matter[single.position] = single
+        particle = list(self.particle)
+        particle[single.position] = single
+        matter_set = set(self.matter_set)
+        matter_set.add(single)
+        board = evolve(self,
+                       matter=tuple(matter),
+                       particle=tuple(particle),
+                       matter_set=frozenset(matter_set))
+
+        return board
 
 
 @overload
@@ -69,7 +99,7 @@ def new_board(
         particle: tuple[ParticleProtocol | None, ...] | None = None,
         _filter: tuple[GeneralFilter, ...] | None = None,
         _matter_set: frozenset[MatterProtocol] | None = None,
-        _prev_board: BoardProtocol | None = None,
+        _prev_board: Board | None = None,
 ) -> Board:
     r"""Returns a generic board class for game"""
     if goals is None:
