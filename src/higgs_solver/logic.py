@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from typing import TypeVar, cast
+from collections.abc import Iterable
+
+from attr import evolve
 
 from higgs_solver.protocol import (AntiSingleProtocol, AttractType,
                                    BoardProtocol, BoolPair, ChargeType,
@@ -8,6 +11,7 @@ from higgs_solver.protocol import (AntiSingleProtocol, AttractType,
                                    PathManyProtocol, PathSingleProtocol,
                                    SingleProtocol, Start, horizontal, vertical)
 
+BT = TypeVar("BT", bound=BoardProtocol)
 ST_co = TypeVar("ST_co", covariant=True, bound=SingleProtocol)
 AST_co = TypeVar("AST_co", covariant=True, bound=AntiSingleProtocol)
 PST = TypeVar("PST", bound=PathSingleProtocol)
@@ -95,6 +99,46 @@ def hole_single_check(
     if (hole := single.board.holes[single.current_pos]) is None:
         return False
     return hole.value <= single.attrs_dict['mass'].value
+
+
+def annihilation_destroy(
+        size: int,
+        positions: Iterable[int],
+        board: BT
+) -> BT:
+    obstacles = list(board.obstacles)
+    for pos in positions:
+
+        for x_direction in horizontal:
+            x_filter = board.filter[pos][x_direction.value]
+            for offset, x_pos in enumerate(
+                    x_filter[:min(size + 1, len(x_filter))]  # x axis value
+            ):
+                obstacles = _vertical_destroy(
+                    size,
+                    board,
+                    obstacles,
+                    offset,
+                    x_pos
+                )
+    return evolve(
+        board,
+        obstacles=tuple(obstacles)
+    )  # type: ignore
+
+
+def _vertical_destroy(
+        size: int,
+        board: BoardProtocol,
+        obstacles: list[ObstacleType | None],
+        offset: int,
+        x_pos: int
+) -> list[ObstacleType | None]:
+    for y_direction in vertical:
+        y_filter = board.filter[x_pos][y_direction.value]
+        for change in y_filter[:min(size - offset + 1, len(y_filter))]:
+            obstacles[change] = None  # diamond shape
+    return obstacles
 
 
 # def electric_many(

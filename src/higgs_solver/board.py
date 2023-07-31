@@ -48,6 +48,7 @@ class Board(BoardProtocol):
         particle[single.position] = None
         matter_set = set(self.matter_set)
         matter_set.remove(single)
+
         board = evolve(self,
                        matter=tuple(matter),
                        particle=tuple(particle),
@@ -62,6 +63,7 @@ class Board(BoardProtocol):
         particle[single.position] = single
         matter_set = set(self.matter_set)
         matter_set.add(single)
+
         board = evolve(self,
                        matter=tuple(matter),
                        particle=tuple(particle),

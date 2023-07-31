@@ -6,8 +6,8 @@ from typing import Any, Self, TypeVar, cast
 from attr import evolve
 from attrs import field, frozen
 
-from higgs_solver.logic import (anti_single_check, electric_single,
-                                hole_single_check,
+from higgs_solver.logic import (annihilation_destroy, anti_single_check,
+                                electric_single, hole_single_check,
                                 matter_collision_single_check,
                                 obstacle_destroy_single_check,
                                 obstacle_exists_single_check)
@@ -41,23 +41,32 @@ def fixed_attr(default: Any, **kwargs):
 @frozen(cache_hash=True)
 class Electron(AntiSingleProtocol):
     position: int
-    mass: MassType = fixed_attr(MassType.LIGHT)
-    charge: ChargeType = fixed_attr(ChargeType.NEGATIVE)
-    colour: ColourType = fixed_attr(ColourType.WHITE)
     anti: AntiType = field(default=AntiType.ORDINARY)
+    mass: MassType = fixed_attr(MassType.LIGHT)
+    charge: ChargeType = fixed_attr(None)
+    colour: ColourType = fixed_attr(ColourType.WHITE)
+
+    def __attrs_post_init__(self) -> None:  # pylint: disable=bad-dunder-name
+        anti_multiplier = -1 if self.anti.value else 1
+        if self.charge is None:
+            object.__setattr__(self, "charge",
+                               ChargeType(anti_multiplier * -1))
 
     def move_all(self, board: BoardProtocol) -> frozenset[BoardProtocol]:
         new_boards: list[BoardProtocol] = []
 
         start = new_single_start(self, board)
         start = electric_single(start,
-                                ChargeType.NEGATIVE,
+                                self.charge,
                                 self.position,
                                 board)
         for move in cast(Iterator[PathSingle[Electron]],
                          start.non_empty()):
             if (new_board := Electron.move_one(move)) is not None:
-                new_boards.append(new_board)
+                new_boards.append(evolve(
+                    new_board,
+                    prev_board=board
+                ))  # type: ignore
 
         return frozenset(new_boards)
 
@@ -72,7 +81,11 @@ class Electron(AntiSingleProtocol):
             if matter_collision_single_check(path):     # particle
                 if anti_single_check(path):
                     other = cast(Electron, path.board.matter[path.current_pos])
-                    return path.board.remove_single(other)
+                    return annihilation_destroy(
+                        1,
+                        (other.position,),
+                        path.board.remove_single(other)
+                    )
 
                 if path.undo is None:
                     return None
