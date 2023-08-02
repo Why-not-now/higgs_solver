@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from typing import cast
-import cProfile
-import os
-import pstats
+import re
 from multiprocessing import Pool, cpu_count
 
 from higgs_solver.board import Board, default_board, new_board
@@ -24,9 +22,6 @@ def create_board() -> Board:
 
     def pos(x: int, y: int) -> int:
         return y * width + x
-
-    def coords(i: int) -> tuple[int, int]:
-        return divmod(i, width)
 
     goals = frozenset({
         pos(3, 3)
@@ -70,16 +65,24 @@ def create_board() -> Board:
 
 
 def solve() -> None:
+    width = 7
     MAX_EVAL = 10
     MAX_CPU = 8
 
+    def coords(i: int) -> tuple[int, int]:
+        return divmod(i, width)
+
+    def position_coords(match: re.Match) -> str:
+        return f"position={str(coords(int(match.group(1))))}"
+
+    winning: Board | None = None
+
+    visited: set[Board] = set()
+    current = {create_board()}
+    evaluated: set[Board] = set()
+
     # start 8 worker processes
     with Pool(processes=min(MAX_CPU, cpu_count() - 1 or 1)) as pool:
-        winning: Board | None = None
-
-        visited: set[Board] = set()
-        current = {create_board()}
-        evaluated: set[Board] = set()
         for i in range(MAX_EVAL):
 
             print(f"step {i + 1}")
@@ -90,11 +93,7 @@ def solve() -> None:
             ))
 
             visited |= current
-            print(len(visited))
-            print(len(current))
             current = evaluated - visited
-            print(len(evaluated))
-            print(len(current))
 
             print(f"visited length: {len(visited)}")
             # print(*(_._str() for _ in visited))
@@ -118,13 +117,20 @@ def solve() -> None:
     current_set = winning.matter_set
     winning = winning.prev_board
     while winning is not None:  # pylint: disable=while-used
-        print(f"{set(current_set - winning.matter_set)} <- "
-              f"{set(winning.matter_set - current_set)}")
+        string = f"{set(current_set - winning.matter_set)} <- " \
+            f"{set(winning.matter_set - current_set)}"
+        string = re.sub(r"position=(\d*)", position_coords, string)
+
+        print(string)
         current_set = winning.matter_set
         winning = winning.prev_board
 
 
 def main() -> None:
+    import cProfile
+    import os
+    import pstats
+
     if DEBUG:
         with cProfile.Profile() as pr:
             solve()
