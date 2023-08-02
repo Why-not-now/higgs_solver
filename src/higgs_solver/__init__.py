@@ -4,7 +4,7 @@ def main():
     from typing import TypeVar
 
     from higgs_solver.board import new_board, default_board
-    from higgs_solver.protocol import AntiType, ObstacleType
+    from higgs_solver.protocol import ObstacleType
     from higgs_solver.particle import Electron
 
     T = TypeVar("T")
@@ -18,6 +18,9 @@ def main():
     def pos(x: int, y: int) -> int:
         return y * width + x
 
+    goals = frozenset({
+        pos(6, 3)
+    })
     obstacles = (
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
@@ -28,8 +31,7 @@ def main():
         None, None, None, None, None, None, None,
         None, None, None, None, None, None, None,
     )
-    electrons = (Electron(pos(0, 3)),
-                 Electron(pos(6, 3), anti=AntiType.ANTI))
+    electrons = (Electron(pos(0, 3)),)
     matter = list(default_board(width, height))
     particle = list(default_board(width, height))
     for e in electrons:
@@ -39,6 +41,7 @@ def main():
         width,
         height,
         obstacles=obstacles,
+        goals=goals,
         matter=tuple(matter),
         particle=tuple(particle)
     )
@@ -47,6 +50,7 @@ def main():
     for board in initial_board.move_all():
         pp.pprint(board.matter_set)
         pp.pprint(pprint_grid(board.obstacles))
+        pp.pprint(board.win())
 
 
 if __name__ == "__main__":

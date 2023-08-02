@@ -16,6 +16,7 @@ from higgs_solver.protocol import (AntiSingleProtocol, AntiType, BoardProtocol,
                                    MatterProtocol, PathAttrs, PathSingle,
                                    PathSingleProtocol, new_single_start)
 
+BT_co = TypeVar("BT_co", bound="BoardProtocol")
 AST_co = TypeVar("AST_co", covariant=True, bound="AntiSingleProtocol")
 
 # def freeze_setatr(self, *args) -> NoReturn:
@@ -52,8 +53,8 @@ class Electron(AntiSingleProtocol):
             object.__setattr__(self, "charge",
                                ChargeType(anti_multiplier * -1))
 
-    def move_all(self, board: BoardProtocol) -> frozenset[BoardProtocol]:
-        new_boards: list[BoardProtocol] = []
+    def move_all(self, board: BT_co) -> set[BT_co]:
+        new_boards: list[BT_co] = []
 
         start = new_single_start(self, board)
         start = electric_single(start,
@@ -68,7 +69,7 @@ class Electron(AntiSingleProtocol):
                     prev_board=board
                 ))  # type: ignore
 
-        return frozenset(new_boards)
+        return set(new_boards)
 
     @classmethod
     # type: ignore[override]

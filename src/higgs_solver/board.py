@@ -36,10 +36,16 @@ class Board(BoardProtocol):
     #     matter = self.matter[particle.x + self.width * particle.y]
     #     return matter.move(self, particle, direction)
 
-    def move_all(self) -> frozenset[Board]:
-        return frozenset().union(*(
-            Matter.move_all(self) for Matter in self.matter_set
-        ))
+    def _str(self) -> str:
+        type_ = type(self)
+        module = type_.__module__
+        qualname = type_.__qualname__
+        return f"<{module}.{qualname} object at {hex(id(self))}>"
+
+    def move_all(self) -> set[Board]:
+        return set.union(
+            *(Matter.move_all(self) for Matter in self.matter_set)
+        )
 
     def remove_single(self, single: SingleProtocol) -> Self:
         matter = list(self.matter)
@@ -70,6 +76,9 @@ class Board(BoardProtocol):
                        matter_set=frozenset(matter_set))
 
         return board
+
+    def win(self) -> bool:
+        return any(self.particle[goal] is not None for goal in self.goals)
 
 
 @overload

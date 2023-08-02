@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, MutableSequence, Sequence
-from copy import deepcopy
+from copy import copy
 from enum import CONTINUOUS, NAMED_FLAGS, Enum, Flag, auto, verify
+from itertools import chain
 from typing import (Generic, Protocol, Required, Self, TypeAlias, TypedDict,
                     TypeVar)
 
@@ -231,7 +232,7 @@ class BoardProtocol(Protocol):
     matter_set: frozenset[MatterProtocol]
     prev_board: BoardProtocol | None
 
-    def move_all(self) -> frozenset[BoardProtocol]:
+    def move_all(self) -> set[Self]:
         ...
 
     def remove_single(self, single: SingleProtocol) -> Self:
@@ -240,13 +241,16 @@ class BoardProtocol(Protocol):
     def add_single(self, single: SingleProtocol) -> Self:
         ...
 
+    def win(self) -> bool:
+        ...
+
 
 class MatterProtocol(Protocol[BT]):
     mass: MassType
     charge: ChargeType
     colour: ColourType
 
-    def move_all(self, board: BT) -> frozenset[BT]:
+    def move_all(self, board: BT) -> set[BT]:
         ...
 
     def to_dict(self) -> PathAttrs:
@@ -343,11 +347,29 @@ class PathSingle(PathSingleProtocol[ST]):
     def __attrs_post_init__(self) -> None:  # pylint: disable=bad-dunder-name
         self.current_pos = self.position[self.steps]
 
+    def __copy__(self) -> Self:
+        # Create a new instance
+        cls = self.__class__
+        result = cls.__new__(cls)
+
+        # Get all __slots__ of the derived class
+        slots = chain.from_iterable(
+            getattr(s, '__slots__', []) for s in self.__class__.__mro__
+        )
+
+        # Copy all attributes
+        for var in slots:
+            setattr(result, var, copy(getattr(self, var)))
+
+        # Return updated instance
+        return result
+
     def advance(self) -> bool:
         if self.steps >= len(self.position) - 1:
             return False
         if self.steps:  # if self.steps == 0
-            self.undo = deepcopy(self)
+            self.undo = None
+            self.undo = copy(self)
         self.steps += 1
         self.current_pos = self.position[self.steps]
         return True
